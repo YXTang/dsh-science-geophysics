@@ -1,0 +1,62 @@
+{
+  "name": "dsh-science-geophysics",
+  "version": "0.1.1",
+  "description": "Claude Science 式地球物理科研工作台（面向 DeepSeek Harness）：ReAct 研究循环引擎（research_* 工具）、带溯源的版本化工件（artifact_* 工具），以及面向地震学/地磁学/观测仪器研发的技能包。",
+  "type": "module",
+  "license": "MIT",
+  "author": "geophysics fork <user@example.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YXTang/dsh-science-geophysics.git"
+  },
+  "homepage": "https://github.com/YXTang/dsh-science-geophysics",
+  "bugs": {
+    "url": "https://github.com/YXTang/dsh-science-geophysics/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "geophysics",
+    "seismology",
+    "geomagnetism",
+    "instrument",
+    "research",
+    "react-loop",
+    "artifact",
+    "provenance",
+    "reproducibility"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "exports": {
+    "./engines/*": "./engines/*",
+    "./skills/*": "./skills/*",
+    "./preset/*": "./preset/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "engines",
+    "preset",
+    "skills",
+    "scripts",
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "test": "node scripts/smoke-test.mjs",
+    "test:stability": "node scripts/stability-test.mjs",
+    "sync": "bash scripts/sync-engines.sh"
+  }
+}

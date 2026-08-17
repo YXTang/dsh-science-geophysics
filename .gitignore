@@ -1,0 +1,13 @@
+# 测试工作区
+testwork-*/
+
+# 原始观测数据（大文件，不入库；用 data-inventory 登记）
+data/
+
+# Node / 临时
+node_modules/
+*.tmp
+*.lock.tmp
+
+# 审计日志
+.science.log
