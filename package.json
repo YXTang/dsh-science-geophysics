@@ -34,12 +34,14 @@
   },
   "packageManager": "pnpm@9.15.0",
   "exports": {
+    ".": "./index.mjs",
     "./engines/*": "./engines/*",
     "./skills/*": "./skills/*",
     "./preset/*": "./preset/*",
     "./package.json": "./package.json"
   },
   "files": [
+    "index.mjs",
     "engines",
     "preset",
     "skills",
@@ -58,5 +60,6 @@
     "test": "node scripts/smoke-test.mjs",
     "test:stability": "node scripts/stability-test.mjs",
     "sync": "bash scripts/sync-engines.sh"
-  }
+  },
+  "main": "./index.mjs"
 }
