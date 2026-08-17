@@ -50,3 +50,6 @@ Write-Host ""
 Write-Host "✔ 安装完成。接下来："
 Write-Host "  1. 在 DSH Web 新建会话，选择「地球物理模式」preset（或把默认 preset 设为 geophysics）。"
 Write-Host "  2. 新会话中调用 research_init 初始化科研项目（技能 seismology-toolkit / geomagnetism-toolkit / instrument-dev）。"
+
+# 安装时同步更新全局文档（使用说明 + 版本说明）
+& (Join-Path $PSScriptRoot "update-docs.ps1") -Kind install -Note "install.ps1 安装 preset/技能"

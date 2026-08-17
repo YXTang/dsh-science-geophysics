@@ -35,4 +35,7 @@ echo ""
 echo "✔ 安装完成。接下来："
 echo "  1. 在 DSH Web 新建会话，选择「地球物理模式」preset（或把默认 preset 设为 geophysics）。"
 echo "  2. 新会话中调用 research_init 初始化你的科研项目（技能 seismology-toolkit / geomagnetism-toolkit / instrument-dev）。"
+
+echo "  同步更新全局文档（使用说明 + 版本说明）："
+bash "$(dirname "$0")/update-docs.sh" install "install.sh 安装 preset/技能"
 echo "  3. 技能：bash scripts/install-skills.sh 装到 ~/.dsh/skills；或把 skills/ 放进项目 .dsh/skills。"
