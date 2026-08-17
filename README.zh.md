@@ -91,6 +91,14 @@ dsh-science-geophysics/
 └── docs/workspace-isolation.md  # DSH Web 会话隔离补丁说明（可选）
 ```
 
+## 文档（全局可读）
+
+插件使用说明与版本说明维护在 **DSH 全局目录**（非插件目录内）：
+
+- `<DSH_HOME>/plugin-docs/dsh-science-geophysics/` —— USAGE.md（使用说明）、CHANGELOG.md（版本说明 + 安装/更新记录）、meta.json（事件记录）
+- 安装/更新后运行 `scripts/update-docs.ps1`（Windows）或 `scripts/update-docs.sh`（bash）即刷新全局文档；`install.ps1`/`install.sh` 已自动调用。
+- 每次运行追加一条安装/更新事件到 meta.json 与 CHANGELOG 的「安装/更新记录」节。
+
 ## 上游同步
 
 引擎层与 [dsh-science](https://github.com/biociao/dsh-science) 保持一致：

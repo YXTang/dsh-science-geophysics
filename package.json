@@ -49,9 +49,7 @@
     "cordis.patch.yml",
     "README.md",
     "README.zh.md",
-    "LICENSE",
-    "USAGE.md",
-    "CHANGELOG.md"
+    "LICENSE"
   ],
   "dsh": {
     "bundle": {
