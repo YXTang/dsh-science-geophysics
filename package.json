@@ -1,6 +1,6 @@
 {
   "name": "dsh-science-geophysics",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Claude Science 式地球物理科研工作台（面向 DeepSeek Harness）：ReAct 研究循环引擎（research_* 工具）、带溯源的版本化工件（artifact_* 工具），以及面向地震学/地磁学/观测仪器研发的技能包。",
   "type": "module",
   "license": "MIT",
@@ -32,6 +32,9 @@
   "engines": {
     "node": ">=18"
   },
+  "peerDependencies": {
+    "@deepseek-ai/dsh": ">=0.2.1-rc.2"
+  },
   "packageManager": "pnpm@9.15.0",
   "exports": {
     ".": "./index.mjs",
@@ -57,8 +60,10 @@
     }
   },
   "scripts": {
+    "build:patch": "node scripts/build-bundle-patch.mjs",
     "test": "node scripts/smoke-test.mjs",
     "test:stability": "node scripts/stability-test.mjs",
+    "check": "node scripts/smoke-test.mjs && bash test/verify-bundle.sh",
     "sync": "bash scripts/sync-engines.sh"
   },
   "main": "./index.mjs"

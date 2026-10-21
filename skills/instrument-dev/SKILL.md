@@ -2,6 +2,10 @@
 name: instrument-dev
 description: 地球物理仪器研发工具箱（地震仪/地磁仪/采集系统）：灵敏度与频率响应标定、噪声本底与动态范围测试、温漂与环境测试、数据采集系统（ADC/抗混叠/时钟）、时间同步（GPS/OCXO）、野外部署协议、仪器对比验证与固件版本管理。做仪器标定、测试、部署、研发时使用。
 whenToUse: 仪器标定（灵敏度/频率响应）、传感器测试（温漂/线性度/噪声本底）、数据采集系统测试、时间同步测试、野外台站部署、仪器与参考仪器对比验证、固件/硬件版本管理时。
+requires:
+  python: ">=3.10,<3.13"
+  conda: ["numpy>=1.26", "scipy>=1.11", "matplotlib>=3.7"]
+  tools: ["tool-fs", "tool-bash"]
 ---
 
 # 仪器研发工具箱（Instrument Dev Toolkit）

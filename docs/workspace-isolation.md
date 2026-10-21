@@ -49,13 +49,16 @@ node scripts/patch-session-isolation.mjs revert
 ```
 
 目标文件自动探测自全局 `@deepseek-ai/dsh` 安装（`<npm-root>/@deepseek-ai/dsh/node_modules/
-@deepseek-ai/dsh-client-runtime/lib/client.js`）；如需指定路径：
+@deepseek-ai/dsh-client-ui-workspace/lib/client.js`）；如需指定路径：
 
 ```bash
 node scripts/patch-session-isolation.mjs apply --file <path-to-client.js>
 # 或
-DSH_CLIENT_RUNTIME=<path> node scripts/patch-session-isolation.mjs apply
+DSH_CLIENT_BUNDLE=<path> node scripts/patch-session-isolation.mjs apply
 ```
+
+变量名沿革：当前变量是 `DSH_CLIENT_BUNDLE`；旧名 `DSH_CLIENT_RUNTIME` 仍被兼容读取
+（改名之前写下的命令无需修改），仅作兼容保留，新命令请用新名。
 
 备份文件：`<client.js>.bak-science-isolation`（apply 时创建，revert 时删除）。
 

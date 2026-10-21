@@ -2,6 +2,8 @@
 name: parallel-delegation
 description: 并行委派（对应 Claude Science 的 Delegation）：把独立的研究任务拆成并行子代理轨道，合并结果。任务量大、可并行（多基因/多样本/多假设）时使用。
 whenToUse: 多个相互独立的分析（不同样本、基因、假设检验）、大量文献筛选、需要多视角产出时。
+requires:
+  tools: ["tool-subagent", "tool-todo"]
 ---
 
 # 并行委派（Delegation）

@@ -2,6 +2,8 @@
 name: artifact-provenance
 description: 把结果保存为版本化工件并记录完整溯源（等价于 Claude Science 的 Artifacts + Provenance）：何时归档、记录什么、如何复现。产出重要结果（数据表、图、模型、变异列表）时使用。
 whenToUse: 生成了值得保留/复现/引用的结果时；写论文引用数据前；需要对比不同版本结果时。
+requires:
+  tools: ["tool-fs", "tool-bash"]
 ---
 
 # 工件与溯源（Artifacts & Provenance）

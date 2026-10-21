@@ -2,6 +2,8 @@
 name: data-inventory
 description: 登记数据清单：来源、下载命令、校验值、授权与使用边界（生物数据常有授权/隐私限制）。涉及原始数据、公共数据库下载、大文件时使用。
 whenToUse: 拿到新数据、下载公共数据、复现需要恢复数据、或需要说明数据来源时。
+requires:
+  tools: ["tool-fs"]
 ---
 
 # 数据清单（Data Inventory）

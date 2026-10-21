@@ -2,6 +2,8 @@
 name: science-project-setup
 description: 初始化或整理一个科研项目：目录约定、研究清单（research-manifest.json）、数据与权限边界。新建项目、换工作区、或整理混乱的项目时使用。
 whenToUse: 开始新科研项目、把已有材料组织成可运行的研究项目、或迁移项目目录时。
+requires:
+  tools: ["tool-fs", "tool-bash"]
 ---
 
 # 科研项目初始化与组织

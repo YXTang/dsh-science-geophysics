@@ -2,6 +2,8 @@
 name: research-loop
 description: 执行 Claude Science 式研究循环（ReAct：提问→假设→实验→观察→分析→结论→迭代）。当开始或继续一个科研任务、需要把研究推进到下一轮迭代时使用。配合 research_* 工具维护 research-manifest.json。
 whenToUse: 开始新研究任务、继续未完成的科研项目、或需要系统化推进假设检验时。
+requires:
+  tools: ["tool-fs", "tool-todo"]
 ---
 
 # 研究循环（Research Loop, ReAct）

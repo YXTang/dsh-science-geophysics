@@ -2,6 +2,8 @@
 name: manuscript-writing
 description: 论文撰写流水线：从工件与执行记录到可投稿草稿（结构、方法、结果、图表、引用、自查）。循环进入 manuscript 阶段时使用。
 whenToUse: 研究循环推进到 manuscript 阶段、起草论文/报告、或需要把结果组织成可投稿手稿时。
+requires:
+  tools: ["tool-fs"]
 ---
 
 # 论文撰写（Manuscript Pipeline）

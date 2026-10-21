@@ -2,6 +2,8 @@
 name: scientific-reviewer
 description: 评审机制（等价于 Claude Science 的 Reviewer）：用子代理对照执行记录核查论断，减少错误。写论文关键论断、重大发现、或用户要求自查时使用。
 whenToUse: 关键论断要写进论文/报告前；实验结论异常重要时；用户要求"检查/评审/核实"时。
+requires:
+  tools: ["tool-subagent", "tool-fs"]
 ---
 
 # 科学评审（Reviewer）

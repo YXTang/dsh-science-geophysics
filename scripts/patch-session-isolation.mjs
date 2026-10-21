@@ -14,7 +14,7 @@
  *   Session view state and the user must pick one.
  *
  *   The fix lives in DSH core
- *   (packages/client/runtime/src/client/workspaces/service.ts, `startSession`)
+ *   (packages/client/ui-workspace/src/client/workspaces/service.ts, `startSession`)
  *   and upstream currently cannot accept external PRs, so dsh-science carries
  *   it as an idempotent patch you re-apply after every `dsh` upgrade. See
  *   docs/workspace-isolation.md.
@@ -26,7 +26,8 @@
  *   - status  report whether the guard is applied / a backup exists
  *
  *   The target file is auto-detected from the global @deepseek-ai/dsh install;
- *   override with --file or the DSH_CLIENT_RUNTIME env var.
+ *   override with --file or the DSH_CLIENT_BUNDLE env var (the older
+ *   DSH_CLIENT_RUNTIME spelling is still honored).
  *
  * EXIT CODES
  *   0 ok (apply was a no-op or succeeded; status printed)
@@ -39,10 +40,14 @@ import { execFileSync } from 'node:child_process'
 import path from 'node:path'
 
 const GUARD_COMMENT = 'Workspace-isolation guard'
-// The pristine expression shipped by @deepseek-ai/dsh-client-runtime
-// (lib/client.js, WorkspaceRuntime#startSession).
-const PRISTINE = 'const target = workspaceId ?? currentWorkspaceId ?? workspace.recentWorkspaceId;'
+// The guarded expression, as shipped by the DSH client bundle
+// (@deepseek-ai/dsh-client-ui-workspace/lib/client.js, WorkspaceRuntime#startSession).
+// As of 0.2.1-rc.2 it reads `?? recent`, a local const holding the "most recently used
+// workspace" — the older inlined spelling no longer exists in the bundle.
 const FIXED = 'const target = workspaceId ?? currentWorkspaceId;'
+const ANCHORS = [
+  { label: 'dsh >= 0.2.1-rc.2', pristine: 'const target = workspaceId ?? currentWorkspaceId ?? recent;' },
+]
 const BACKUP_SUFFIX = '.bak-science-isolation'
 
 function fail(msg) {
@@ -50,22 +55,46 @@ function fail(msg) {
   process.exit(1)
 }
 
+// Newest first. The bundle moved between dsh releases; the first one that exists wins.
+const CLIENT_SUBPATHS = [
+  '@deepseek-ai/dsh-client-ui-workspace/lib/client.js',
+]
+
 function findClientJs(override) {
   if (override) return override
   const candidates = []
+  const require = createRequire(import.meta.url)
+  for (const sub of CLIENT_SUBPATHS) {
+    try {
+      candidates.push(require.resolve(sub))
+    } catch { /* not resolvable from this package (exports map / not installed) */ }
+  }
   try {
-    const require = createRequire(import.meta.url)
-    candidates.push(require.resolve('@deepseek-ai/dsh-client-runtime/lib/client.js'))
-  } catch { /* not resolvable from this package */ }
+    // The bundle lives next to the host: <dsh>/node_modules/@deepseek-ai/*.
+    const dshPkg = require.resolve('@deepseek-ai/dsh/package.json')
+    for (const sub of CLIENT_SUBPATHS) {
+      candidates.push(path.join(path.dirname(dshPkg), 'node_modules', sub))
+    }
+  } catch { /* @deepseek-ai/dsh not resolvable from this package */ }
   try {
-    const globalRoot = execFileSync('npm', ['root', '-g'], { encoding: 'utf8' }).trim()
-    candidates.push(
-      path.join(globalRoot, '@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-runtime/lib/client.js'),
-      path.join(globalRoot, '@deepseek-ai/dsh-client-runtime/lib/client.js'),
-    )
+    // npm on Windows is npm.cmd, which spawnSync only launches through a shell.
+    const globalRoot = execFileSync('npm', ['root', '-g'], {
+      encoding: 'utf8',
+      shell: process.platform === 'win32',
+    }).trim()
+    for (const sub of CLIENT_SUBPATHS) {
+      candidates.push(
+        path.join(globalRoot, '@deepseek-ai/dsh/node_modules', sub),
+        path.join(globalRoot, sub),
+      )
+    }
   } catch { /* npm root unavailable */ }
   for (const c of candidates) if (c && existsSync(c)) return c
   return undefined
+}
+
+function findAnchor(src) {
+  return ANCHORS.find((a) => src.includes(a.pristine))
 }
 
 function indentOf(line) {
@@ -79,13 +108,17 @@ function apply(file) {
     console.log(`[patch-session-isolation] already applied: ${file}`)
     return 0
   }
-  if (!src.includes(PRISTINE)) {
-    console.error(`[patch-session-isolation] pristine pattern not found in ${file}`)
-    console.error('  expected: ' + PRISTINE)
+  const anchor = findAnchor(src)
+  if (!anchor) {
+    console.error(`[patch-session-isolation] no known anchor found in ${file}`)
+    for (const a of ANCHORS) console.error(`  expected (${a.label}): ${a.pristine}`)
+    for (const line of src.split('\n')) {
+      if (/const target = workspaceId/.test(line)) console.error('  found instead: ' + line.trim())
+    }
     return 1
   }
   const lines = src.split('\n')
-  const idx = lines.findIndex(l => l.includes(PRISTINE))
+  const idx = lines.findIndex(l => l.includes(anchor.pristine))
   if (idx === -1) return 1
   const indent = indentOf(lines[idx])
   const guard = [
@@ -102,13 +135,13 @@ function apply(file) {
   writeFileSync(file, lines.join('\n'))
   // verify
   const out = readFileSync(file, 'utf8')
-  if (!out.includes(FIXED) || out.includes(PRISTINE)) {
+  if (!out.includes(FIXED) || out.includes(anchor.pristine)) {
     copyFileSync(backup, file)
     rmSync(backup)
     console.error('[patch-session-isolation] apply failed verification; restored backup')
     return 1
   }
-  console.log(`[patch-session-isolation] applied (backup: ${backup})`)
+  console.log(`[patch-session-isolation] applied via anchor "${anchor.label}" (backup: ${backup})`)
   return 0
 }
 
@@ -127,10 +160,11 @@ function revert(file) {
 function status(file) {
   const src = readFileSync(file, 'utf8')
   const applied = src.includes(GUARD_COMMENT) && src.includes(FIXED)
-  const pristine = src.includes(PRISTINE)
+  const anchor = findAnchor(src)
   console.log(`[patch-session-isolation] file: ${file}`)
   console.log(`[patch-session-isolation] guard applied: ${applied ? 'yes' : 'no'}`)
-  console.log(`[patch-session-isolation] pristine expression present: ${pristine ? 'yes' : 'no'}`)
+  console.log(`[patch-session-isolation] anchor matched: ${anchor ? `yes (${anchor.label})` : 'no'}`)
+  console.log(`[patch-session-isolation] pristine expression present: ${anchor ? 'yes' : 'no'}`)
   console.log(`[patch-session-isolation] backup exists: ${existsSync(file + BACKUP_SUFFIX) ? 'yes' : 'no'}`)
   return 0
 }
@@ -138,10 +172,12 @@ function status(file) {
 const argv = process.argv.slice(2)
 const cmd = argv[0] && !argv[0].startsWith('--') ? argv[0] : 'apply'
 const fileFlag = argv.find(a => a === '--file')
-const override = fileFlag ? argv[argv.indexOf(fileFlag) + 1] : (process.env.DSH_CLIENT_RUNTIME || undefined)
+const override = fileFlag
+  ? argv[argv.indexOf(fileFlag) + 1]
+  : (process.env.DSH_CLIENT_BUNDLE || process.env.DSH_CLIENT_RUNTIME || undefined)
 
 const file = findClientJs(override)
-if (!file) fail(`could not locate @deepseek-ai/dsh-client-runtime/lib/client.js — pass --file <path>`)
+if (!file) fail(`could not locate the DSH client bundle (${CLIENT_SUBPATHS.join(', ')}) — pass --file <path>`)
 
 let code = 0
 if (cmd === 'apply') code = apply(file)

@@ -2,6 +2,9 @@
 name: literature-connector
 description: 文献连接器（对应 Claude Science 的 Literature access / connectors）：检索文献、提取要点、维护 literature/ 笔记库与 references.bib，写作时按规范引用。做文献调研或引用文献时使用。
 whenToUse: 文献调研、背景写作、方法选择、查证某个说法是否有文献支持时。
+requires:
+  tools: ["tool-web", "tool-fs"]
+  services: ["https://api.crossref.org"]
 ---
 
 # 文献连接器（Literature Connector）

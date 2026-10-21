@@ -9,7 +9,12 @@
 - **12 个科研技能** —— research-loop、science-project-setup、artifact-provenance、scientific-reviewer、literature-connector、parallel-delegation、manuscript-writing、**seismology-toolkit（地震学）**、**geomagnetism-toolkit（地磁学）**、**instrument-dev（仪器研发）**、conda-environments、data-inventory。
 
 两个引擎插件**零第三方依赖**（只用 Node 内置模块，共享 `engines/core.mjs`），注册标准 cordis 工具。
-既可作 profile bundle 安装（`dsh plugin add`），也可作 agent preset（「地球物理模式」）安装。
+安装一次就够：`dsh plugin add` 装进 profile 后，本包携带的 preset 声明行让 DSH 新建会话时出现可选 preset
+「地球物理模式」（dsh 0.2.1-rc.2 起 preset 不再是目录 —— 旧的 `$DSH_HOME/.agent-presets/<id>/` 机制已废弃）。
+
+**已验证 DSH 版本：0.2.1-rc.2**（`peerDependencies: {"@deepseek-ai/dsh": ">=0.2.1-rc.2"}`）。
+安装脚本（`scripts/install.sh` / `scripts/install.ps1`）先探测已装 `dsh` 版本：低于该下限时给出明确警告并要求确认，
+非交互环境（CI / 管道）只警告、不阻塞、不退出。
 
 ### 相对上游的改造（fork patch）
 
@@ -20,25 +25,37 @@
 
 ## 安装
 
-### 方式 A —— profile bundle（社区标准）
+一个 bundle 同时带来 profile 层引擎与 agent preset（无需再单独装 preset 目录）：
 
 ```bash
-# 从本地目录或 GitHub：
-dsh plugin --profile web add "github:YXTang/dsh-science-geophysics"
-# 或 npm 发布后：dsh plugin --profile web add dsh-science-geophysics
+bash scripts/install.sh              # 按真源重生成 cordis.patch.yml -> npm pack -> dsh plugin --profile web add <tgz>
+bash scripts/install.sh myprofile    # 装到指定 profile（或 DSH_PROFILE=myprofile）
 ```
 
-重启 profile（或刷新 Web GUI）。bundle 会把两个引擎插入 profile 层栈，
-该 profile 上所有 agent 都能用 `research_*` / `artifact_*` 工具。
-
-### 方式 B —— agent preset（完整「地球物理模式」，按 agent 隔离）
+手动等价（不想跑脚本时）：
 
 ```bash
-git clone <你的仓库> ~/.dsh/.agent-presets/geophysics
-# 或本地安装：bash scripts/install.sh（或 bash scripts/install.sh link）
+node scripts/build-bundle-patch.mjs
+npm pack
+dsh plugin --profile web add ./dsh-science-geophysics-0.2.0.tgz
 ```
 
-在 DSH Web 新建会话并选择 **地球物理模式** preset —— preset 自带科研人格 + 引擎，按 agent 作用域隔离。
+**装完怎么确认**（install.sh 会在安装前后都打印这三条）：
+
+```bash
+dsh plugin --profile web list                              # ① 应出现 dsh-science-geophysics
+dsh --profile web --dump-config | grep -E 'preset-geophysics|dsh-science-geophysics/engines/'
+                                                           # ② 应看到 preset-geophysics 声明行 + 两条引擎行
+```
+
+③ 重启 profile（或刷新 Web GUI）后新建会话，preset 选择器里应能选到 **地球物理模式**：
+人格 + 引擎都在这条 preset 声明行里，按 agent 作用域隔离（未选该 preset 的会话不受影响）；
+两条引擎 insert 行同时插进 profile 层栈，所以同 profile 的其他会话也能用 `research_*` / `artifact_*`。
+
+> **机制背景**：dsh 0.2.1-rc.2 起 preset 不是目录，而是 bundle patch（`cordis.patch.yml`）里的一条
+> `@deepseek-ai/dsh-agent-preset` 声明行（官方 skill 原文：*Nothing reads that directory any more.*）。
+> `cordis.patch.yml` 是生成物：由 `scripts/build-bundle-patch.mjs`（`npm run build:patch`）从真源
+> `preset/agent.cordis.yml` + `preset/preset.yml` 生成，幂等、勿手改。
 
 ### 技能
 
@@ -48,6 +65,10 @@ git clone <你的仓库> ~/.dsh/.agent-presets/geophysics
 ```bash
 bash scripts/install-skills.sh          # -> ~/.dsh/skills（遵循 $DSH_HOME）
 ```
+
+每个 `SKILL.md` 的 frontmatter 带 `requires:` 段，声明 python / conda / pip / cli / tools / services 六类依赖
+（`tools` 只填 preset 里真实存在的 `tool-*` id）；可复现环境规格见 `envs/environment.yml`
+（由 `scripts/init-project.sh` 幂等生成：obspy / pygmt / ppigrf …）。`npm run check` 会校验 frontmatter 与 preset 的一致性。
 
 ## 快速开始（首个会话）
 
@@ -60,34 +81,55 @@ bash scripts/install-skills.sh          # -> ~/.dsh/skills（遵循 $DSH_HOME）
 ## 验证
 
 ```bash
+npm run check                   # 聚合入口：smoke-test + verify-bundle（以下五类全绿才通过）
+bash test/verify-bundle.sh      # 单独跑五类真校验（默认，约 3 秒，零网络）
+VERIFY_E2E=1 bash test/verify-bundle.sh   # 追加端到端 bundle 安装验证（需 pnpm / dsh / 网络）
+
 node scripts/smoke-test.mjs     # 引擎逻辑 + 端到端循环 + 错误码 + 迁移（62 项）
 node scripts/stability-test.mjs # 并发 / 原子性 / 锁 / 压力稳定性检查（25 项）
 ```
 
-两个测试脚本只写临时/指定工作区，可在 CI 安全运行。
+`test/verify-bundle.sh` 是发布前的真校验，五类各自给出结论行：
+
+1. **引用名解析** —— `package.json` / `cordis.patch.yml` / `preset/agent.cordis.yml` / `scripts/*.mjs` 里出现的每个
+   `@deepseek-ai/dsh-*` 名称都必须在已装 DSH 里真实存在（`@deepseek-ai/dsh` 宿主自身豁免）；缺失逐个列出并以非 0 退出。
+2. **技能 frontmatter** —— 12 个 `skills/*/SKILL.md` 的 frontmatter 可解析；`requires` 键名 ⊆ python/conda/pip/cli/tools/services；
+   `requires.tools` 里每个 id 都能在 `preset/agent.cordis.yml` 找到对应行。
+3. **envs/environment.yml** —— 合法 YAML 且含 name / channels / dependencies。
+4. **smoke-test** —— `node scripts/smoke-test.mjs` 失败计数非 0 即判失败。
+5. **cordis.patch.yml preset 声明** —— 必须能被 YAML 解析；含 preset 声明行
+   （loader 行 id `preset-<config.id>`）且 `config.id` / `config.plugins` 齐备；`config.plugins`
+   与 `preset/agent.cordis.yml` 顶层行逐行对齐；`plugins[].name` 里的每个 `@deepseek-ai/*` 都在已装目录中存在，
+   每个 `dsh-science-geophysics/*` 子路径都对应仓库里真实存在的文件；两条 profile 引擎行必须是包子路径。
+
+YAML 解析优先用 DSH 自带的 `yaml` 包，找不到时降级为内置极简解析并在输出里说明走了哪条路径。
+全部测试脚本只写临时/指定工作区，不改已装 DSH、不联网，可在 CI 安全运行。
 
 ## 仓库结构
 
 ```
 dsh-science-geophysics/
 ├── package.json          # dsh.bundle.patch -> ./cordis.patch.yml（含 exports）
-├── cordis.patch.yml      # bundle patch：按子路径导出插入两个引擎
+├── cordis.patch.yml      # bundle patch（生成物，勿手改）：两条引擎 insert 行 + preset 声明行
 ├── engines/              # 引擎源（bundle 形态，领域无关，与上游 dsh-science 同步）
 │   ├── core.mjs          #   共享核心：锁/原子写/错误码/流式哈希/结构化工具/审计（含 fork 加固）
 │   ├── research-loop.mjs
 │   └── artifact-registry.mjs
-├── preset/               # agent-preset 形态（engines 镜像，用 sync-engines.sh 同步）
-│   ├── agent.cordis.yml  #   地球物理科研人格 + 引擎（相对路径挂载）
-│   ├── preset.yml        #   「地球物理模式」
+├── preset/               # preset 真源（cordis.patch.yml 由它生成）
+│   ├── agent.cordis.yml  #   插件行真源：地球物理科研人格 + 引擎
+│   ├── preset.yml        #   preset 的 name / description（「地球物理模式」）
 │   └── engines/          #   镜像 —— 保持同步：bash scripts/sync-engines.sh
 ├── skills/               # 12 个 SKILL.md 技能（含 3 个地球物理领域技能）
 ├── scripts/
-│   ├── install.sh        # 安装 preset -> ~/.dsh/.agent-presets/geophysics
+│   ├── build-bundle-patch.mjs # 由 preset/ 真源生成 cordis.patch.yml（幂等）
+│   ├── install.sh        # npm pack -> dsh plugin --profile web add <tgz>
 │   ├── install-skills.sh # 安装技能 -> ~/.dsh/skills
 │   ├── sync-engines.sh   # 镜像 engines/ -> preset/engines/
 │   ├── init-project.sh   # 项目骨架（台站/设备清单模板）
 │   ├── smoke-test.mjs    # 62 项检查（临时工作区，node >= 18）
 │   └── stability-test.mjs# 25 项并发/原子性/压力检查
+├── envs/environment.yml  # conda 环境规格（init-project.sh 幂等生成，npm run check 校验）
+├── test/verify-bundle.sh # 发布前五类真校验（引用名 / frontmatter / envs / smoke / patch preset 声明）
 └── docs/workspace-isolation.md  # DSH Web 会话隔离补丁说明（可选）
 ```
 
