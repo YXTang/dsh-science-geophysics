@@ -19,6 +19,13 @@ export * from "./engines/core.mjs";
 /** 本插件在 profile 组合里的插件名。 */
 export const name = "dsh-science-geophysics";
 
+/**
+ * 声明的服务依赖：cordis 会等 agentPresets 就绪后才调用 apply。
+ * 不导出它时 apply 会抢先执行，只能靠 ctx.inject 补偿（实测晚约 10 秒），
+ * 前端在补偿前取到的预设列表里就没有本预设。
+ */
+export const inject = ["agentPresets"];
+
 /** preset 标识：registry 以此作为键，也是会话选择的身份。 */
 export const PRESET_ID = "geophysics";
 
@@ -32,6 +39,18 @@ export function bundledPresetDir() {
  * @param ctx 宿主插件上下文
  */
 export function apply(ctx) {
+	// 无 logger 依赖的启动留痕：能区分「apply 未被调用」与「调用了但注册失败」。
+	try {
+		const fs = process.getBuiltinModule("node:fs");
+		const path = process.getBuiltinModule("node:path");
+		const dir = path.join(process.env.DSH_HOME || process.cwd(), "logs");
+		fs.mkdirSync(dir, { recursive: true });
+		fs.appendFileSync(path.join(dir, "dsh-science-geophysics.log"),
+			`${new Date().toISOString()} apply() entered pid=${process.pid}\n`, "utf8");
+	} catch (error) {
+		// 诊断写入失败不应影响插件挂载
+	}
+	console.log("[dsh-science-geophysics] apply() entered");
 	/** 活动的 registry，或部署未组合该服务时的 undefined。 */
 	const registryOf = () => {
 		try {
@@ -52,8 +71,24 @@ export function apply(ctx) {
 	/** 上次声明时 registry 尚不存在——只有这种状态才触发迟到补偿。 */
 	let registryMissing = false;
 
+	const TAG = "[dsh-science-geophysics]";
 	const warn = (message) => {
+		console.error(`${TAG} ${message}`);
 		ctx.logger?.warn?.(`dsh-science-geophysics: ${message}`);
+		filing("WARN " + message);
+	};
+	const note = (message) => {
+		console.log(`${TAG} ${message}`);
+		ctx.logger?.info?.(`dsh-science-geophysics: ${message}`);
+		filing(message);
+	};
+	/** 追加到 DSH_HOME/logs，便于重启后离线排查。 */
+	const filing = (message) => {
+		try {
+			process.getBuiltinModule("node:fs").appendFileSync(
+				process.getBuiltinModule("node:path").join(process.env.DSH_HOME || process.cwd(), "logs", "dsh-science-geophysics.log"),
+				`${new Date().toISOString()} ${message}\n`, "utf8");
+		} catch {}
 	};
 
 	/** 撤回当前声明，等待 registry 卸载其行。 */
@@ -76,7 +111,7 @@ export function apply(ctx) {
 			const registry = registryOf();
 			if (registry === undefined) {
 				registryMissing = true;
-				warn("agentPresets registry is not composed; preset not declared");
+				warn("agentPresets registry not found via ctx.get(); preset not declared");
 				return;
 			}
 			registryMissing = false;
@@ -85,7 +120,7 @@ export function apply(ctx) {
 			try {
 				const definition = readPresetDefinition(PRESET_ID, bundledPresetDir());
 				release = await registry.register(definition);
-				ctx.logger?.info?.(`dsh-science-geophysics: declared preset "${definition.name}" (${definition.id})`);
+				note(`declared preset "${definition.name}" (${definition.id}), ${definition.plugins.length} rows`);
 			} catch (error) {
 				warn(`preset declaration failed: ${error instanceof Error ? error.message : String(error)}`);
 			}
