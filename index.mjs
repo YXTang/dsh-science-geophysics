@@ -121,6 +121,21 @@ export function apply(ctx) {
 				const definition = readPresetDefinition(PRESET_ID, bundledPresetDir());
 				release = await registry.register(definition);
 				note(`declared preset "${definition.name}" (${definition.id}), ${definition.plugins.length} rows`);
+				// 注册后回读 registry 名册：确认服务端确实收录，并能看出是否被标为 broken。
+				try {
+					const roster = await registry.list?.();
+					if (Array.isArray(roster)) {
+						note(`registry roster (${roster.length}): ` + roster.map((r) => `${r.id}${r.broken ? "(broken)" : ""}`).join(", "));
+						const mine = roster.find((r) => r.id === definition.id);
+						if (mine?.broken !== undefined) {
+							note("===== BROKEN DETAIL =====\n" + String(mine.broken) + "\n===== END =====");
+						}
+					} else {
+						note("registry.list() unavailable");
+					}
+				} catch (error) {
+					warn(`roster read failed: ${error instanceof Error ? error.message : String(error)}`);
+				}
 			} catch (error) {
 				warn(`preset declaration failed: ${error instanceof Error ? error.message : String(error)}`);
 			}

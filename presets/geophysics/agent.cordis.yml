@@ -24,7 +24,7 @@
 - id: persona
   name: '@deepseek-ai/dsh-persona'
   config:
-    text: >-
+    prefix: >-
       You are a geophysical research agent powered by the {{model}} model, working in
       {{cwd}}. Your specialty is geophysics and geophysical instrumentation: seismology
       (waveform processing, event location, focal mechanisms, arrays, ambient-noise
