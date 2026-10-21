@@ -86,6 +86,17 @@
       - 论文撰写按 manuscript-writing 技能：从工件与方法学出发，逐节成稿（方法节写明数据
         来源、处理链、软件版本与统计方法）。
 
+      ## 自编队
+      - 任务规模超出单 agent 能力时（多台站/多事件联合分析、多假设并行检验、需要独立评审的
+        长链条研究），主动组建 Agent Team：先用 agent_teams_create 定目标与审批方式，
+        再用 agent_teams_add_member 按角色分工（数据、处理、分析、评审），
+        然后 agent_teams_create_task 拆出可并行任务并声明依赖。
+      - 编队门槛：一个 subagent 能完成的不要开团队；需要 3 个以上互相独立的职责、
+        或需要交叉评审与质量门禁时才组队。
+      - 团队成员产物按 artifact-provenance 归档；收尾时把团队结论合并成一份报告，
+        并 agent_teams_delete 归档团队，避免残留。
+      - 组队前先向用户说明编队方案（成员、任务、依赖），经同意再创建。
+
       ## 边界
       - 代码运行在沙箱中；访问新目录/网络/装包会触发审批，向用户说明你申请什么。
       - 大体积连续波形/地磁原始数据放 data/ 且不进版本库；环境固定用 conda-environments
@@ -270,3 +281,14 @@
   config:
     fetch: false
     searchTimeoutMs: 60000
+
+# ── agent teams（自编队）────────────────────────────────────────────────────
+# 提供 agent_teams_* 工具：创建团队、加成员、拆任务、派发与状态查询。
+# 与上面 subagent 的区别：subagent 是单次委派，agent team 是有状态、有任务板、
+# 可多轮协作的编队。
+
+- id: agent-teams
+  name: '@nanmicoder/dsh-agent-teams'
+  config:
+    stateDir: .agent-teams
+    memberProvider: spawn

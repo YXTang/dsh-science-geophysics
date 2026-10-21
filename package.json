@@ -38,15 +38,16 @@
   "packageManager": "pnpm@9.15.0",
   "exports": {
     ".": "./index.mjs",
+    "./presets/*": "./presets/*",
     "./engines/*": "./engines/*",
     "./skills/*": "./skills/*",
-    "./preset/*": "./preset/*",
     "./package.json": "./package.json"
   },
   "files": [
     "index.mjs",
+    "src",
+    "presets",
     "engines",
-    "preset",
     "skills",
     "scripts",
     "cordis.patch.yml",
@@ -60,7 +61,6 @@
     }
   },
   "scripts": {
-    "build:patch": "node scripts/build-bundle-patch.mjs",
     "test": "node scripts/smoke-test.mjs",
     "test:stability": "node scripts/stability-test.mjs",
     "check": "node scripts/smoke-test.mjs && bash test/verify-bundle.sh",

@@ -107,8 +107,6 @@ command -v npm  >/dev/null 2>&1 || { echo "错误：需要 npm（npm pack 打 tg
 command -v dsh  >/dev/null 2>&1 || { echo "错误：PATH 上找不到 dsh（dsh plugin add 需要它）" >&2; exit 1; }
 
 echo ""
-echo "按真源重新生成 cordis.patch.yml（真源：preset/agent.cordis.yml + preset/preset.yml）…"
-node "$ROOT/scripts/build-bundle-patch.mjs" || { echo "错误：cordis.patch.yml 生成失败" >&2; exit 1; }
 
 WORK="$(mktemp -d)"
 cleanup() { rm -rf "$WORK"; }
